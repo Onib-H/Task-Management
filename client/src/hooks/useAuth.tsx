@@ -1,8 +1,5 @@
+import { useAuth as useAuthContext } from '../contexts/useAuthContext';
 
-const useAuth = () => {
-    return (
-        <div>useAuth</div>
-    )
-}
+const useAuth = useAuthContext;
 
-export default useAuth
+export default useAuth;

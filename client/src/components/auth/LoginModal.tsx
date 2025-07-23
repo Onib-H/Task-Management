@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useAuth from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,11 +13,26 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState({ email: false, password: false });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt with:", { email, password });
-    // Add actual login logic here
+    setErrorMessage("");
+    setIsSubmitting(true);
+    
+    try {
+      await login(email, password);
+      onClose(); // Close the modal
+      navigate('/user'); // Navigate to user dashboard
+    } catch (error: any) {
+      setErrorMessage(error.response?.data?.error || "Login failed. Please check your credentials.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -52,6 +69,16 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-6">
+              {errorMessage && (
+                <motion.div 
+                  className="p-3 rounded bg-red-50 text-red-600 text-sm"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {errorMessage}
+                </motion.div>
+              )}
+              
               <div className="relative">
                 <input
                   type="email"
@@ -63,6 +90,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   className="w-full px-3 py-3 bg-gray-50 border-b-2 border-gray-200 focus:border-blue-400 outline-none transition-all duration-300"
                   placeholder=" "
                   required
+                  disabled={isSubmitting}
                 />
                 <label 
                   htmlFor="email" 
@@ -85,6 +113,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   className="w-full px-3 py-3 bg-gray-50 border-b-2 border-gray-200 focus:border-blue-400 outline-none transition-all duration-300"
                   placeholder=" "
                   required
+                  disabled={isSubmitting}
                 />
                 <label 
                   htmlFor="password" 
@@ -98,6 +127,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isSubmitting}
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,11 +144,17 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               
               <motion.button
                 type="submit"
-                className="w-full bg-black text-white py-3 rounded-full hover:opacity-90 transition-opacity"
+                className="w-full bg-black text-white py-3 rounded-full hover:opacity-90 transition-opacity flex justify-center items-center"
                 whileTap={{ scale: 0.98 }}
-                whileHover={{ y: -2 }}
+                whileHover={isSubmitting ? {} : { y: -2 }}
+                disabled={isSubmitting}
               >
-                Login
+                {isSubmitting ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : "Login"}
               </motion.button>
             </form>
           </motion.div>

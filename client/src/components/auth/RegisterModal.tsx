@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useAuth from "../../hooks/useAuth";
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -7,29 +8,46 @@ interface RegisterModalProps {
 }
 
 const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isFocused, setIsFocused] = useState({ 
+    username: false,
     email: false, 
     password: false,
     confirmPassword: false 
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { register } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset any previous errors
+    setPasswordError("");
+    setErrorMessage("");
     
     if (password !== confirmPassword) {
       setPasswordError("Passwords do not match");
       return;
     }
     
-    setPasswordError("");
-    console.log("Register attempt with:", { email, password });
-    // Add actual registration logic here
+    setIsSubmitting(true);
+    
+    try {
+      await register(username, email, password);
+      onClose(); // Close the modal after successful registration
+    } catch (error: any) {
+      setErrorMessage(error.response?.data?.error || "Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -62,6 +80,7 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
               <button 
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isSubmitting}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -70,6 +89,39 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-6">
+              {errorMessage && (
+                <motion.div 
+                  className="p-3 rounded bg-red-50 text-red-600 text-sm"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {errorMessage}
+                </motion.div>
+              )}
+              
+              <div className="relative">
+                <input
+                  type="text"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onFocus={() => setIsFocused({ ...isFocused, username: true })}
+                  onBlur={() => setIsFocused({ ...isFocused, username: false })}
+                  className="w-full px-3 py-3 bg-gray-50 border-b-2 border-gray-200 focus:border-blue-400 outline-none transition-all duration-300"
+                  placeholder=" "
+                  required
+                  disabled={isSubmitting}
+                />
+                <label 
+                  htmlFor="username" 
+                  className={`absolute left-3 transition-all duration-300 pointer-events-none ${
+                    isFocused.username || username ? 'text-xs text-blue-500 -top-2' : 'text-gray-500 top-3'
+                  }`}
+                >
+                  Username
+                </label>
+              </div>
+              
               <div className="relative">
                 <input
                   type="email"
@@ -81,6 +133,7 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
                   className="w-full px-3 py-3 bg-gray-50 border-b-2 border-gray-200 focus:border-blue-400 outline-none transition-all duration-300"
                   placeholder=" "
                   required
+                  disabled={isSubmitting}
                 />
                 <label 
                   htmlFor="register-email" 
@@ -103,6 +156,7 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
                   className="w-full px-3 py-3 bg-gray-50 border-b-2 border-gray-200 focus:border-blue-400 outline-none transition-all duration-300"
                   placeholder=" "
                   required
+                  disabled={isSubmitting}
                 />
                 <label 
                   htmlFor="register-password" 
@@ -116,6 +170,7 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isSubmitting}
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,6 +198,7 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
                   } outline-none transition-all duration-300`}
                   placeholder=" "
                   required
+                  disabled={isSubmitting}
                 />
                 <label 
                   htmlFor="confirm-password" 
@@ -158,6 +214,7 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
                   type="button"
                   onClick={toggleConfirmPasswordVisibility}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isSubmitting}
                 >
                   {showConfirmPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,11 +240,17 @@ const RegisterModal = ({ isOpen, onClose }: RegisterModalProps) => {
               
               <motion.button
                 type="submit"
-                className="w-full bg-black text-white py-3 rounded-full hover:opacity-90 transition-opacity"
+                className="w-full bg-black text-white py-3 rounded-full hover:opacity-90 transition-opacity flex justify-center items-center"
                 whileTap={{ scale: 0.98 }}
-                whileHover={{ y: -2 }}
+                whileHover={isSubmitting ? {} : { y: -2 }}
+                disabled={isSubmitting}
               >
-                Register
+                {isSubmitting ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : "Register"}
               </motion.button>
             </form>
           </motion.div>
