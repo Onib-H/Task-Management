@@ -1,8 +1,8 @@
-import { API } from "./_axios";
+import { ADMIN} from "./_axios";
 
 export const getMessage = async () => {
     try {
-        const response = await API.get('/', {
+        const response = await ADMIN.get('/', {
             headers: { 'Content-Type': 'application/json' }
         });
         console.log(response.data);

@@ -4,3 +4,9 @@ flask_cors
 Bcrypt
 flask_bcrypt
 flask_mail
+python-dotenv
+Flask-SQLAlchemy
+PyMySQL
+Flask-Migrate
+flask-sqlalchemy
+PyJWT
